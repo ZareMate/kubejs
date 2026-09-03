@@ -147,14 +147,14 @@ function sendDiscordNotification(player, otherPlayers) {
 							":S>",
 						color: 3447003,
 						footer: {
-							text: "Sputnik watch",
+							text: "Multi-Account Watch",
 						},
 					},
 				],
 			}),
 		);
 	} catch (e) {
-		console.error("[SputnikWatch] Failed to send webhook: " + e);
+		console.error("[Multi-Account Watch] Failed to send webhook: " + e);
 	}
 }
 
@@ -217,7 +217,7 @@ function sendCheckIPWebhook(player, groups) {
 							":S>",
 						color: 3447003,
 						footer: {
-							text: "Sputnik watch",
+							text: "Multi-Account watch",
 						},
 					},
 				],
@@ -226,7 +226,7 @@ function sendCheckIPWebhook(player, groups) {
 
 		console.log("[Multi-Account] /checkip results sent to Discord.");
 	} catch (e) {
-		console.error("[SputnikWatch] Failed to send /checkip webhook: " + e);
+		console.error("[Multi-Account Watch] Failed to send /checkip webhook: " + e);
 	}
 }
 
