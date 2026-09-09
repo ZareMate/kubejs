@@ -2,86 +2,210 @@
 
 A collection of **KubeJS scripts** created and maintained by **ZareMate**.
 
-This repository contains scripts intended for use with Minecraft servers and modpacks running [KubeJS](https://kubejs.com/). The scripts are primarily focused on server-side automation, utilities, integrations, and custom functionality.
+This repository contains server-side KubeJS scripts for Minecraft, focused on automation, utilities, integrations, player management, and custom server functionality.
 
 ## 📁 Repository
 
-The repository is available at:
-
-https://github.com/ZareMate/kubejs
+**GitHub:** https://github.com/ZareMate/kubejs
 
 ## 📜 Scripts
 
 ### `multi-acc.js`
 
-A KubeJS script for detecting and managing players using multiple accounts.
+A multi-account detection and management script.
 
-The script integrates with **LuckPerms** and can provide functionality such as:
+**Features:**
+- Tracks player IP/account associations while players are online
+- Detects players sharing an IP address
+- `/checkip` command for checking current IP groups
+- LuckPerms-based permission checks
+- Staff alerts for detected shared IPs
+- Optional Discord webhook notifications
+- Rebuilds the IP map when `/checkip` is used
 
-* Checking player IP/account associations
-* Detecting multiple accounts
-* Permission-based commands
-* Sending alerts through Discord webhooks
+**Dependencies:**
+- KubeJS
+- LuckPerms
+- KubeJSHTTP
 
-> **Note:** Some scripts may require additional mods, libraries, permissions, or external services to function correctly. Check the comments at the top of each script for dependencies and configuration instructions.
+**Configuration:**
+```js
+var DISCORD_WEBHOOK_URL = "REPLACE_ME";
+var MULTIACCOUNT_PERMISSION_CHECKIP = "multiaccount.command.checkip";
+var MULTIACCOUNT_PERMISSION_ALERT = "multiaccount.alert";
+```
+
+**Permissions:**
+
+| Permission | Purpose |
+|---|---|
+| `multiaccount.command.checkip` | Allows `/checkip` |
+| `multiaccount.alert` | Receives multi-account staff alerts |
+
+Server permission level 3 can also use `/checkip`.
+
+---
+
+### `dailyquests.js`
+
+A persistent daily quest system with configurable quests, rewards, player progress, and administrative rerolling.
+
+**Features:**
+- Three daily quest difficulties: Easy, Medium, and Hard
+- Random quest assignment per player
+- Persistent player quest data stored in JSON
+- Quest completion tracking
+- Inventory-based progress checking
+- Item removal when claiming a completed quest
+- Configurable rewards
+- Daily reset at midnight
+- Displays the remaining time until the next reset
+- Detects a missed reset after the server was offline by comparing the saved reset date
+- Automatically creates the default configuration when needed
+- Repairs invalid or outdated player quest data
+- Administrative `/reroll <player>` command
+- Rerolling works for both online players and players with saved quest data
+
+**Dependencies:**
+- KubeJS
+- LuckPerms
+
+**Generated files:**
+```text
+server/kubejs/config/dailyquests.json
+server/kubejs/data/dailyquests/players.json
+```
+
+The configuration file contains the reset-check interval, reroll permission, rewards, and quest pools.
+
+**Default reroll permission:**
+```text
+dailyquests.command.reroll
+```
+
+**Commands:**
+
+| Command | Description | Permission |
+|---|---|---|
+| `/dailyrewards` | Opens the player's daily quests | Player |
+| `/dailyrewards claim <easy\|medium\|hard>` | Claims a completed quest | Player |
+| `/reroll <player>` | Rerolls a player's daily quests | `dailyquests.command.reroll` |
+
+Server permission level 3 can also use `/reroll <player>`.
+
+### Daily reset behavior
+
+Daily quest data is stored on disk and includes the date of the last reset.
+
+The script checks the current date when the server starts, players join, quest data is opened/claimed, and periodically while the server is running. If the stored reset date is older than the current date, the daily quests are reset.
+
+This means the server does **not** need to be online exactly at `00:00`. If it was offline during the reset, the next startup/check detects the new day and resets the quests.
+
+The GUI displays the countdown to the next midnight:
+
+```text
+Resets in: 5h 23m 41s
+```
 
 ## 🛠️ Installation
 
 1. Install [KubeJS](https://kubejs.com/) on your Minecraft server.
-2. Download or clone this repository.
-3. Copy the required `.js` script(s) into your KubeJS server scripts directory, typically:
+2. Install any dependencies required by the script you want to use.
+3. Download or clone this repository.
+4. Copy the required `.js` files into:
 
 ```text
 server/kubejs/server_scripts/
 ```
 
-4. Configure any required values inside the script.
-5. Restart the server or reload the KubeJS scripts where supported.
+5. Start or restart the server.
+6. Configure the generated/configuration values as required.
+
+For `dailyquests.js`, the default configuration is automatically created at:
+
+```text
+server/kubejs/config/dailyquests.json
+```
+
+For `multi-acc.js`, configure the webhook and permissions directly in the script.
 
 ## ⚙️ Configuration
 
-Configuration is generally done directly inside each script.
+Configuration depends on the individual script.
 
-Before using a script, check for variables such as:
+### Daily Quests
 
-```js
-const DISCORD_WEBHOOK_URL = 'REPLACE_ME';
+`dailyquests.json` controls:
+- Reset check interval
+- Reroll permission
+- Easy, medium, and hard rewards
+- Easy, medium, and hard quest pools
+- Quest names, descriptions, item IDs, amounts, and reward types
+
+Example structure:
+
+```json
+{
+  "resetCheckInterval": 20,
+  "questPermissionReroll": "dailyquests.command.reroll",
+  "rewards": {
+    "easy": {},
+    "medium": {},
+    "hard": {}
+  },
+  "quests": {
+    "easy": [],
+    "medium": [],
+    "hard": []
+  }
+}
 ```
 
-Replace placeholder values with your own configuration where required.
+### Multi-Account
 
-Scripts may also require specific permissions or integrations. These requirements are documented within the individual files whenever applicable.
+Set the Discord webhook URL if Discord notifications are required:
+
+```js
+var DISCORD_WEBHOOK_URL = "REPLACE_ME";
+```
+
+Do not commit a real Discord webhook URL to a public repository.
 
 ## 📦 Dependencies
 
-Dependencies vary between scripts.
+Dependencies vary by script.
 
-Common dependencies may include:
+| Script | KubeJS | LuckPerms | KubeJSHTTP |
+|---|:---:|:---:|:---:|
+| `multi-acc.js` | ✅ | ✅ | ✅ |
+| `dailyquests.js` | ✅ | ✅ | ❌ |
 
-* [KubeJS](https://kubejs.com/)
-* [LuckPerms](https://luckperms.net/)
-* Other Minecraft mods or server-side integrations
-
-Always check the individual script before installation.
+Always check the script header and configuration before installation.
 
 ## ✏️ Modifying the Scripts
 
 You are welcome to modify the scripts in accordance with the repository license.
 
-When modifying a script, please preserve the original author attribution and license notice.
+When modifying a script:
+- Preserve the original author attribution.
+- Preserve the original copyright notice.
+- Preserve the license notice.
+- Document substantial changes when appropriate.
 
-If you make substantial modifications, you may add yourself as a modifier in the file's header while retaining the original author information.
-
-Example:
+If you modify a script, you may additionally identify yourself in its header:
 
 ```js
 /*
  * Copyright (c) 2026 @ZareMate
  * Original author: @ZareMate
  *
- * Modified by: YourName
- *
  * Licensed under the MIT License.
+ *
+ * If you modify this script, you may additionally identify yourself as:
+ *
+ * Modified by: @YourUsername
+ *
+ * The original author attribution and copyright notice must remain.
  */
 ```
 
@@ -89,12 +213,12 @@ Example:
 
 Issues and pull requests are welcome.
 
-When submitting changes, please:
-
-* Explain what the script or change does.
-* Test the script before submitting it.
-* Preserve existing attribution and licensing information.
-* Document any new dependencies or configuration requirements.
+When submitting changes:
+- Explain what the change does.
+- Test the script before submitting it.
+- Preserve existing attribution and licensing information.
+- Document new dependencies or configuration requirements.
+- Avoid committing secrets such as Discord webhook URLs.
 
 ## 📄 License
 
@@ -106,5 +230,4 @@ See [`LICENSE`](LICENSE) for the full license text.
 
 Created and maintained by **@ZareMate**.
 
-GitHub:
-https://github.com/ZareMate
+**GitHub:** https://github.com/ZareMate
