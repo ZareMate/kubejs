@@ -758,7 +758,7 @@ function tellQuest(player, category, quest, claimed) {
 			Text.of("[ CLAIM ]")
 				.green()
 				.bold()
-				.clickRunCommand("/dailyrewards claim " + category),
+				.clickRunCommand("/dailyquests claim " + category),
 		);
 	} else {
 		player.tell(Text.of("[ NOT COMPLETE ]").red());
@@ -767,7 +767,7 @@ function tellQuest(player, category, quest, claimed) {
 	player.tell("");
 }
 
-function openDailyRewards(player) {
+function openDailyQuests(player) {
 	if (!player) {
 		return;
 	}
@@ -800,7 +800,7 @@ function openDailyRewards(player) {
 
 	tellQuest(player, "hard", hardQuest, playerData.hardClaimed);
 
-	player.tell(Text.of("[ REFRESH ]").aqua().clickRunCommand("/dailyrewards"));
+	player.tell(Text.of("[ REFRESH ]").aqua().clickRunCommand("/dailyquests"));
 
 	separator(player);
 }
@@ -827,7 +827,7 @@ function claimQuest(player, category) {
 	if (!quest) {
 		player.tell(
 			Text.of(
-				"Your quest data was repaired. Run /dailyrewards again.",
+				"Your quest data was repaired. Run /dailyquests again.",
 			).yellow(),
 		);
 
@@ -910,7 +910,7 @@ function claimQuest(player, category) {
 
 	player.tell("");
 
-	openDailyRewards(player);
+	openDailyQuests(player);
 
 	return 1;
 }
@@ -970,7 +970,7 @@ function rerollPlayer(server, name) {
 			).yellow(),
 		);
 
-		openDailyRewards(onlinePlayer);
+		openDailyQuests(onlinePlayer);
 
 		return true;
 	}
@@ -1010,7 +1010,7 @@ function resetDailyQuests(server) {
 		players[j].tell(Text.of("Daily quests have been reset!").green());
 
 		players[j].tell(
-			Text.of("Use /dailyrewards to view your new quests.").gray(),
+			Text.of("Use /dailyquests to view your new quests.").gray(),
 		);
 	}
 
@@ -1035,7 +1035,7 @@ ServerEvents.commandRegistry(function (event) {
 	var Arguments = event.arguments;
 
 	event.register(
-		Commands.literal("dailyrewards")
+		Commands.literal("dailyquests")
 			.executes(function (ctx) {
 				try {
 					var player = ctx.source.player;
@@ -1050,12 +1050,12 @@ ServerEvents.commandRegistry(function (event) {
 						return 0;
 					}
 
-					openDailyRewards(player);
+					openDailyQuests(player);
 
 					return 1;
 				} catch (error) {
 					console.error(
-						"[DailyQuests] /dailyrewards error: " + String(error),
+						"[DailyQuests] /dailyquests error: " + String(error),
 					);
 
 					ctx.source.sendFailure(
@@ -1130,7 +1130,7 @@ ServerEvents.commandRegistry(function (event) {
 							).yellow(),
 						);
 
-						openDailyRewards(target);
+						openDailyQuests(target);
 
 						ctx.source.sendSuccess(
 							Text.of(
