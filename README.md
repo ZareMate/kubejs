@@ -87,8 +87,8 @@ dailyquests.command.reroll
 
 | Command | Description | Permission |
 |---|---|---|
-| `/dailyrewards` | Opens the player's daily quests | Player |
-| `/dailyrewards claim <easy\|medium\|hard>` | Claims a completed quest | Player |
+| `/dailyquests` | Opens the player's daily quests | Player |
+| `/dailyquests claim <easy\|medium\|hard>` | Claims a completed quest | Player |
 | `/reroll <player>` | Rerolls a player's daily quests | `dailyquests.command.reroll` |
 
 Server permission level 3 can also use `/reroll <player>`.
