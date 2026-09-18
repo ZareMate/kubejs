@@ -13,7 +13,7 @@
 
 // Dependencies: LuckPerms
 
-var DAILY_QUESTS_FILE = "data/dailyquests/players.json";
+var DAILY_QUESTS_FILE = "kubejs/data/dailyquests/players.json";
 var DAILY_QUESTS_CONFIG = "config/dailyquests.json";
 
 var data = null;
