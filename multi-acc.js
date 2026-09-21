@@ -14,7 +14,7 @@
 // Dependencies: LuckPerms, KubeJSHTTP
 (function () {
 	var DISCORD_WEBHOOK_URL =
-		"https://discord.com/api/webhooks/1544442801247494226/A-1JQpkeJ2jFFik63uEWPIV0Vd-fOcJV9KoySseGu8LO5SpkxZ23okWXxd-IMkD_tQDP";
+		"REPLACE_ME";
 
 	var MULTIACCOUNT_PERMISSION_CHECKIP = "multiaccount.command.checkip";
 	var MULTIACCOUNT_PERMISSION_ALERT = "multiaccount.alert";
