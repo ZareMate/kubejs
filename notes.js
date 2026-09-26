@@ -166,9 +166,7 @@
 		}
 
 		var author = getMapValue(input, "author");
-
 		var text = getMapValue(input, "text");
-
 		var createdAt = getMapValue(input, "createdAt");
 
 		if (author !== null && author !== undefined) {
@@ -212,10 +210,11 @@
 
 				while (entries.hasNext()) {
 					var entry = entries.next();
-
 					var adminUuid = String(entry.getKey());
 
-					player.notes[adminUuid] = normaliseNote(entry.getValue());
+					player.notes[adminUuid] = normaliseNote(
+						entry.getValue(),
+					);
 				}
 			} else {
 				for (var adminUuid in loadedNotes) {
@@ -261,10 +260,11 @@
 
 				while (entries.hasNext()) {
 					var entry = entries.next();
-
 					var uuid = String(entry.getKey());
 
-					data.players[uuid] = normalisePlayer(entry.getValue());
+					data.players[uuid] = normalisePlayer(
+						entry.getValue(),
+					);
 				}
 			} else {
 				for (var uuid in loadedPlayers) {
@@ -328,7 +328,9 @@
 					playerOutput.notes[String(adminUuid)] = {
 						author: String(note.author || "Unknown"),
 						text: String(note.text || ""),
-						createdAt: Math.floor(getNumber(note.createdAt, 0)),
+						createdAt: Math.floor(
+							getNumber(note.createdAt, 0),
+						),
 					};
 				}
 
@@ -358,8 +360,7 @@
 	function getOnlinePlayer(name) {
 		try {
 			var players = Utils.server.getPlayerList().getPlayers();
-
-			var target = String(name).toLowerCase();
+			var target = String(name).trim().toLowerCase();
 
 			for (var i = 0; i < players.size(); i++) {
 				var player = players.get(i);
@@ -378,14 +379,22 @@
 	}
 
 	function findPlayerUuidByName(name) {
-		var online = getOnlinePlayer(name);
+		var target = String(name).trim();
+
+		if (!target) {
+			return null;
+		}
+
+		var lowerTarget = target.toLowerCase();
+
+		// 1. Check currently online players.
+		var online = getOnlinePlayer(target);
 
 		if (online) {
 			return String(online.uuid);
 		}
 
-		var target = String(name).toLowerCase();
-
+		// 2. Check players already stored in notes.json.
 		for (var uuid in data.players) {
 			var player = data.players[uuid];
 
@@ -393,9 +402,45 @@
 				continue;
 			}
 
-			if (String(player.name).toLowerCase() === target) {
+			if (String(player.name).toLowerCase() === lowerTarget) {
 				return String(uuid);
 			}
+		}
+
+		// 3. Check Minecraft's profile cache.
+		try {
+			var profileCache = Utils.server.getProfileCache();
+
+			if (profileCache) {
+				var result = profileCache.get(target);
+
+				if (result) {
+					// Java Optional<GameProfile>
+					if (typeof result.isPresent === "function") {
+						if (result.isPresent()) {
+							var profile = result.get();
+
+							if (
+								profile &&
+								typeof profile.getId === "function"
+							) {
+								return String(profile.getId());
+							}
+						}
+					}
+					// Fallback if KubeJS exposes the profile directly.
+					else if (typeof result.getId === "function") {
+						return String(result.getId());
+					}
+				}
+			}
+		} catch (error) {
+			console.error(
+				"[Notes] Failed to resolve player profile for '" +
+					target +
+					"': " +
+					String(error),
+			);
 		}
 
 		return null;
@@ -403,12 +448,10 @@
 
 	function getOrCreatePlayer(uuid, name) {
 		var key = String(uuid);
-
 		var player = data.players[key];
 
 		if (!player) {
 			player = createPlayerData(name);
-
 			data.players[key] = player;
 		} else {
 			player.name = String(name);
@@ -456,29 +499,35 @@
 
 		if (noteText.length === 0) {
 			player.tell(Text.of("Note cannot be empty.").red());
-
 			return false;
 		}
 
 		var targetUuid = findPlayerUuidByName(targetName);
 
 		if (!targetUuid) {
-			player.tell(Text.of("Player not found.").red());
+			player.tell(
+				Text.of("Player not found: " + String(targetName)).red(),
+			);
 
 			return false;
 		}
 
 		var online = getOnlinePlayer(targetName);
-
-		var targetNameStored;
+		var targetNameStored = String(targetName).trim();
 
 		if (online) {
 			targetNameStored = String(online.username);
-		} else {
+		} else if (
+			data.players[targetUuid] &&
+			data.players[targetUuid].name
+		) {
 			targetNameStored = String(data.players[targetUuid].name);
 		}
 
-		var targetData = getOrCreatePlayer(targetUuid, targetNameStored);
+		var targetData = getOrCreatePlayer(
+			targetUuid,
+			targetNameStored,
+		);
 
 		if (!targetData.notes || typeof targetData.notes !== "object") {
 			targetData.notes = {};
@@ -486,7 +535,10 @@
 
 		var adminUuid = String(player.uuid);
 
-		targetData.notes[adminUuid] = createNote(player.username, noteText);
+		targetData.notes[adminUuid] = createNote(
+			player.username,
+			noteText,
+		);
 
 		saveData();
 
@@ -504,11 +556,19 @@
 
 		if (!targetUuid) {
 			player.tell(Text.of("Player not found.").red());
-
 			return false;
 		}
 
 		var targetData = data.players[targetUuid];
+
+		if (!targetData) {
+			player.tell(
+				Text.of("No notes found for " + String(targetName) + ".")
+					.yellow(),
+			);
+
+			return false;
+		}
 
 		if (!targetData.notes || typeof targetData.notes !== "object") {
 			targetData.notes = {};
@@ -545,11 +605,19 @@
 
 		if (!targetUuid) {
 			source.sendFailure(Text.of("Player not found.").red());
-
 			return false;
 		}
 
 		var targetData = data.players[targetUuid];
+
+		if (!targetData) {
+			source.sendFailure(
+				Text.of("No notes found for " + String(targetName) + ".")
+					.yellow(),
+			);
+
+			return false;
+		}
 
 		if (!targetData.notes || typeof targetData.notes !== "object") {
 			targetData.notes = {};
@@ -559,7 +627,6 @@
 
 		for (var adminUuid in targetData.notes) {
 			delete targetData.notes[adminUuid];
-
 			removed++;
 		}
 
@@ -580,11 +647,19 @@
 
 		if (!targetUuid) {
 			source.sendFailure(Text.of("Player not found.").red());
-
 			return false;
 		}
 
 		var targetData = data.players[targetUuid];
+
+		if (!targetData) {
+			source.sendFailure(
+				Text.of("No notes found for " + String(targetName) + ".")
+					.yellow(),
+			);
+
+			return false;
+		}
 
 		if (!targetData.notes || typeof targetData.notes !== "object") {
 			targetData.notes = {};
@@ -595,10 +670,15 @@
 			false,
 		);
 
-		source.sendSuccess(Text.of("PLAYER NOTES").gold().bold(), false);
+		source.sendSuccess(
+			Text.of("PLAYER NOTES").gold().bold(),
+			false,
+		);
 
 		source.sendSuccess(
-			Text.of("Player: ").gray().append(Text.of(targetData.name).white()),
+			Text.of("Player: ")
+				.gray()
+				.append(Text.of(targetData.name).white()),
 			false,
 		);
 
@@ -613,7 +693,10 @@
 
 			count++;
 
-			source.sendSuccess(Text.of("").white(), false);
+			source.sendSuccess(
+				Text.of("").white(),
+				false,
+			);
 
 			source.sendSuccess(
 				Text.of("[" + String(note.author) + "]")
@@ -622,7 +705,10 @@
 				false,
 			);
 
-			source.sendSuccess(Text.of(String(note.text)).white(), false);
+			source.sendSuccess(
+				Text.of(String(note.text)).white(),
+				false,
+			);
 
 			source.sendSuccess(
 				Text.of(formatDate(note.createdAt)).darkGray(),
@@ -632,7 +718,9 @@
 
 		if (count === 0) {
 			source.sendSuccess(
-				Text.of("No notes have been added for this player.").gray(),
+				Text.of(
+					"No notes have been added for this player.",
+				).gray(),
 				false,
 			);
 		}
@@ -647,7 +735,6 @@
 
 	ServerEvents.commandRegistry(function (event) {
 		var Commands = event.commands;
-
 		var Arguments = event.arguments;
 
 		var addCommand = Commands.literal("add")
@@ -674,12 +761,17 @@
 								"player",
 							);
 
-							var noteText = Arguments.GREEDY_STRING.getResult(
-								ctx,
-								"note",
-							);
+							var noteText =
+								Arguments.GREEDY_STRING.getResult(
+									ctx,
+									"note",
+								);
 
-							return addNote(player, targetName, noteText)
+							return addNote(
+								player,
+								targetName,
+								noteText,
+							)
 								? 1
 								: 0;
 						} catch (error) {
@@ -689,7 +781,8 @@
 
 							ctx.source.sendFailure(
 								Text.of(
-									"Failed to add note: " + String(error),
+									"Failed to add note: " +
+										String(error),
 								).red(),
 							);
 
@@ -714,16 +807,23 @@
 					try {
 						return removeNote(
 							ctx.source.player,
-							Arguments.STRING.getResult(ctx, "player"),
+							Arguments.STRING.getResult(
+								ctx,
+								"player",
+							),
 						)
 							? 1
 							: 0;
 					} catch (error) {
-						console.error("[Notes] Remove error: " + String(error));
+						console.error(
+							"[Notes] Remove error: " +
+								String(error),
+						);
 
 						ctx.source.sendFailure(
 							Text.of(
-								"Failed to remove note: " + String(error),
+								"Failed to remove note: " +
+									String(error),
 							).red(),
 						);
 
@@ -734,7 +834,10 @@
 
 		var clearCommand = Commands.literal("clear")
 			.requires(function (source) {
-				return sourceHasPermission(source, PERMISSION_CLEAR);
+				return sourceHasPermission(
+					source,
+					PERMISSION_CLEAR,
+				);
 			})
 			.then(
 				Commands.argument(
@@ -744,16 +847,23 @@
 					try {
 						return clearNotes(
 							ctx.source,
-							Arguments.STRING.getResult(ctx, "player"),
+							Arguments.STRING.getResult(
+								ctx,
+								"player",
+							),
 						)
 							? 1
 							: 0;
 					} catch (error) {
-						console.error("[Notes] Clear error: " + String(error));
+						console.error(
+							"[Notes] Clear error: " +
+								String(error),
+						);
 
 						ctx.source.sendFailure(
 							Text.of(
-								"Failed to clear notes: " + String(error),
+								"Failed to clear notes: " +
+									String(error),
 							).red(),
 						);
 
@@ -770,26 +880,37 @@
 			.then(removeCommand)
 			.then(clearCommand)
 			.then(
-				Commands.argument("player", Arguments.STRING.create(event))
+				Commands.argument(
+					"player",
+					Arguments.STRING.create(event),
+				)
 					.requires(function (source) {
-						return sourceHasPermission(source, PERMISSION_READ);
+						return sourceHasPermission(
+							source,
+							PERMISSION_READ,
+						);
 					})
 					.executes(function (ctx) {
 						try {
 							return showNotes(
 								ctx.source,
-								Arguments.STRING.getResult(ctx, "player"),
+								Arguments.STRING.getResult(
+									ctx,
+									"player",
+								),
 							)
 								? 1
 								: 0;
 						} catch (error) {
 							console.error(
-								"[Notes] Read error: " + String(error),
+								"[Notes] Read error: " +
+									String(error),
 							);
 
 							ctx.source.sendFailure(
 								Text.of(
-									"Failed to read notes: " + String(error),
+									"Failed to read notes: " +
+										String(error),
 								).red(),
 							);
 
